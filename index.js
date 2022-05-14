@@ -34,6 +34,13 @@ async function run() {
 			res.send(result);
 		});
 
+		app.get("/booking", async (req, res) => {
+			const patient = req.query.patient;
+			const query = { patient: patient };
+			const bookings = await bookingCollection.find(query).toArray();
+			res.send(bookings);
+		});
+
 		// get
 		app.get("/available", async (req, res) => {
 			const date = req.query.date; // || "May 14, 2022";
