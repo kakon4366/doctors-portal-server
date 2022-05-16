@@ -54,6 +54,11 @@ async function run() {
 			res.send(result);
 		});
 
+		app.get("/user", verifyJWT, async (req, res) => {
+			const users = await userCollection.find().toArray();
+			res.send(users);
+		});
+
 		app.get("/booking", verifyJWT, async (req, res) => {
 			const patient = req.query.patient;
 			const decodedEmail = req.decoded.email;
@@ -86,6 +91,32 @@ async function run() {
 				{ expiresIn: "1h" }
 			);
 			res.send({ result, token });
+		});
+
+		app.put("/user/admin/:email", verifyJWT, async (req, res) => {
+			const email = req.params.email;
+			const requester = req.decoded.email;
+			const requestAccount = await userCollection.findOne({
+				email: requester,
+			});
+
+			if (requestAccount.role === "admin") {
+				const filter = { email: email };
+				const updateDoc = {
+					$set: { role: "admin" },
+				};
+				const result = await userCollection.updateOne(filter, updateDoc);
+				res.send(result);
+			} else {
+				res.status(403).send({ message: "Forbidden" });
+			}
+		});
+
+		app.get("/admin/:email", async (req, res) => {
+			const email = req.params.email;
+			const user = await userCollection.findOne({ email: email });
+			const isAdmin = user.role === "admin";
+			res.send({ admin: isAdmin });
 		});
 
 		// get
