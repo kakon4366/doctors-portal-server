@@ -53,6 +53,20 @@ async function run() {
 			.db("doctors_portal")
 			.collection("doctors");
 
+		// verify admin middleware
+		const verifyAdmin = async (req, res, next) => {
+			const requester = req.decoded.email;
+			const requestAccount = await userCollection.findOne({
+				email: requester,
+			});
+
+			if (requestAccount.role === "admin") {
+				next();
+			} else {
+				res.status(403).send({ message: "Forbidden access" });
+			}
+		};
+
 		//API method
 		app.get("/services", async (req, res) => {
 			const query = {};
@@ -100,24 +114,20 @@ async function run() {
 			res.send({ result, token });
 		});
 
-		app.put("/user/admin/:email", verifyJWT, async (req, res) => {
-			const email = req.params.email;
-			const requester = req.decoded.email;
-			const requestAccount = await userCollection.findOne({
-				email: requester,
-			});
-
-			if (requestAccount.role === "admin") {
+		app.put(
+			"/user/admin/:email",
+			verifyJWT,
+			verifyAdmin,
+			async (req, res) => {
+				const email = req.params.email;
 				const filter = { email: email };
 				const updateDoc = {
 					$set: { role: "admin" },
 				};
 				const result = await userCollection.updateOne(filter, updateDoc);
 				res.send(result);
-			} else {
-				res.status(403).send({ message: "Forbidden" });
 			}
-		});
+		);
 
 		app.get("/admin/:email", async (req, res) => {
 			const email = req.params.email;
@@ -168,7 +178,7 @@ async function run() {
 			return res.send({ success: true, result: result });
 		});
 
-		app.post("/doctor", async (req, res) => {
+		app.post("/doctor", verifyJWT, verifyAdmin, async (req, res) => {
 			const doctor = req.body;
 			const result = await doctorCollection.insertOne(doctor);
 			res.send(result);
