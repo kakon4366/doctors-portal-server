@@ -1,5 +1,5 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 var jwt = require("jsonwebtoken");
 const cors = require("cors");
@@ -80,6 +80,14 @@ async function run() {
 			res.send(users);
 		});
 
+		//get single booking for payment
+		app.get("/booking/:id", verifyJWT, async (req, res) => {
+			const id = req.params.id;
+			const query = { _id: ObjectId(id) };
+			const booking = await bookingCollection.findOne(query);
+			res.send(booking);
+		});
+
 		app.get("/booking", verifyJWT, async (req, res) => {
 			const patient = req.query.patient;
 			const decodedEmail = req.decoded.email;
@@ -109,7 +117,7 @@ async function run() {
 			const token = jwt.sign(
 				{ email: email },
 				process.env.ACCESS_TOKEN_SECRET,
-				{ expiresIn: "1h" }
+				{ expiresIn: "6h" }
 			);
 			res.send({ result, token });
 		});
